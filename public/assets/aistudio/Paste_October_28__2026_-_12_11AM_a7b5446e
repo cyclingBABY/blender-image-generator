@@ -1,0 +1,795 @@
+# MASTER DEVELOPMENT PROMPT: IMAGE-TO-3D AI STUDIO
+## Build a Complete AI Software That Converts Images Into Editable 3D Models for Blender
+
+### 1. PROJECT OVERVIEW
+
+Act as a senior AI engineer, full-stack developer, 3D graphics engineer, UI/UX designer, and software architect.
+
+Build a complete, production-oriented web application called **Image3D Studio**. Its main purpose is to allow users to upload an image of almost any object, use AI to generate a three-dimensional model, preview and edit the result, and export the finished model for use in Blender.
+
+The application must be a functional software product, not a static website, prototype, or dashboard with buttons that do nothing.
+
+The primary workflow is:
+
+**Upload image → AI processing → Generate 3D geometry → Preview model → Edit and optimize → Download → Open in Blender.**
+
+The software should support objects such as:
+- Event stages, LED screens, LED cabinets, trussing and lighting fixtures.
+- Speakers, furniture, decorations and interior objects.
+- Vehicles, bicycles, machinery and electronic equipment.
+- Buildings, sculptures, props and product designs.
+- Characters, animals and other supported organic objects.
+- Drawings, sketches, concept art and product photographs.
+
+The system must clearly distinguish between a single-object reconstruction and a complete scene reconstruction. A single image does not contain enough information to recover every hidden surface accurately, so the software should use AI inference and disclose when geometry is estimated.
+
+### 2. MAIN OBJECTIVES
+
+Build a system that:
+
+1. Accepts JPG, JPEG, PNG and WebP images.
+2. Converts an image into a textured 3D mesh using an actual image-to-3D AI model.
+3. Supports optional multi-view images for improved reconstruction.
+4. Provides a real-time or interactive 3D viewer.
+5. Allows users to rotate, zoom and inspect their generated models.
+6. Supports basic mesh editing, positioning, scaling and rotation.
+7. Offers automatic mesh cleanup and polygon reduction.
+8. Exports usable 3D files compatible with Blender.
+9. Allows users to save and reopen their projects.
+10. Uses free and open-source components wherever practical.
+11. Works in a desktop web browser and adapts to mobile screens.
+12. Can be deployed online, with an option to run AI inference locally.
+
+Do not create fake AI generation. If an AI service is not configured, display a clear setup message or offer a genuinely working local generation option.
+
+### 3. RECOMMENDED TECHNOLOGY STACK
+
+Use the following technologies unless a documented technical limitation requires an alternative.
+
+**Frontend**
+- React and TypeScript.
+- Vite for development and production builds.
+- Tailwind CSS for styling.
+- Three.js for interactive 3D rendering.
+- React Three Fiber and Drei for React-based 3D components.
+- Zustand or an equivalent lightweight state manager.
+- React Hook Form and Zod for input validation.
+
+**Backend**
+- Python and FastAPI for AI orchestration and 3D processing.
+- REST API for communication between the frontend and backend.
+- Background task processing for long-running generations.
+- WebSockets or Server-Sent Events for generation progress.
+- A job queue for managing multiple generation requests.
+
+**Database and storage**
+- Supabase PostgreSQL for users, projects, generation jobs and metadata.
+- Supabase Auth for authentication.
+- Supabase Storage or a compatible object-storage service for uploaded images and generated files.
+- Temporary local storage during development.
+- Configurable storage policies and automatic cleanup for temporary files.
+
+**3D processing**
+- Blender Python API for advanced scene and model processing when Blender is installed on the processing machine.
+- Trimesh and Open3D where appropriate for mesh inspection and processing.
+- PyMeshLab or another suitable mesh-processing library for cleanup and simplification.
+- glTF/GLB tooling for web previews and interchange.
+- Blender's command-line mode for automated conversion and processing when supported.
+
+Do not assume that Blender, GPU libraries or native geometry tools can run directly inside a normal browser or serverless function. Place resource-intensive processing in a suitable worker environment.
+
+### 4. AI IMAGE-TO-3D ENGINE
+
+Create a dedicated AI engine abstraction so different image-to-3D models can be integrated without rebuilding the application.
+
+Investigate and evaluate the following model families:
+
+- **Hunyuan3D:** image-to-3D generation and texture generation.
+- **TripoSR:** single-image 3D reconstruction.
+- **Stable Fast 3D:** single-image 3D asset generation.
+- **TRELLIS and related open-source 3D generation models:** evaluate compatibility, hardware requirements and licensing.
+- Other actively maintained open-source image-to-3D models when they provide a measurable advantage.
+
+Verify each model's current repository, license, inference requirements, supported inputs and export capabilities before integration. Do not claim that a model is free for every commercial use without checking its license.
+
+Build a common provider interface with operations similar to:
+
+- `generate_model(image, settings)`
+- `check_job_status(job_id)`
+- `get_generated_assets(job_id)`
+- `cancel_job(job_id)`
+- `release_job_resources(job_id)`
+
+Each provider must implement its own adapter.
+
+Allow the administrator to configure the default AI model and fallback models.
+
+#### AI execution modes
+
+**Mode A: Hosted inference**
+
+Use an external inference provider or GPU API. Keep API keys on the backend. Support configurable provider endpoints, job IDs, progress polling and download URLs.
+
+**Mode B: Self-hosted inference**
+
+Allow an administrator to deploy a supported open-source model on a GPU workstation or GPU server. Provide installation instructions, dependency files, model-weight configuration and a health-check endpoint.
+
+**Mode C: Local development fallback**
+
+When AI credentials or a GPU worker are unavailable, allow developers to test the entire upload, job-management, viewer and export workflow using an explicitly labeled sample model or a simple generated primitive. Never label a placeholder as an AI-generated reconstruction.
+
+Do not make the application dependent on a paid API if a suitable local alternative is available.
+
+### 5. IMAGE UPLOAD AND PREPARATION
+
+Create an upload page with:
+
+- Drag-and-drop upload.
+- File browser selection.
+- Image preview.
+- File size and resolution information.
+- Image removal and replacement.
+- Optional background removal.
+- Image cropping and subject framing.
+- Image orientation correction.
+- Input validation and error messages.
+
+Support an initial maximum upload size configurable by the administrator.
+
+Validate file signatures, MIME types, file size and image dimensions. Reject corrupted or unsupported files.
+
+Prepare the image for AI inference by:
+1. Correcting orientation.
+2. Resizing it to the selected model's supported resolution.
+3. Optionally isolating the foreground object.
+4. Preserving the original image for reference.
+5. Creating a processed image for inference.
+
+If background removal is enabled, use a suitable open-source model such as rembg with a compatible segmentation model, or another verified solution.
+
+Provide an option to keep the background when it is important to the reconstruction.
+
+### 6. GENERATION SETTINGS
+
+Before generation, display a settings panel.
+
+Include:
+
+- Object category: automatic, product, furniture, vehicle, character, architecture, stage equipment or other.
+- Generation quality: draft, standard and high.
+- Texture generation: enabled or disabled.
+- Background removal: enabled or disabled.
+- Geometry detail: low, medium or high where supported.
+- Target polygon count where supported.
+- Symmetry assistance where supported.
+- AI model selection if the user has permission.
+- Optional text description to guide reconstruction.
+- Optional additional reference images.
+- Output scale and orientation preferences.
+
+Do not display settings that the selected AI model cannot actually support. Explain when a setting is an approximation or is applied during post-processing rather than AI generation.
+
+For multi-view generation, allow users to upload additional images of the same object from different angles. Validate that they are intended to depict the same object.
+
+### 7. GENERATION WORKFLOW
+
+When the user presses **Generate 3D Model**, execute the following workflow:
+
+1. Validate the image and selected settings.
+2. Create a generation job in the database.
+3. Store the input image securely.
+4. Submit the job to the selected AI provider.
+5. Record the provider job ID and processing state.
+6. Display live progress when the provider supports it.
+7. Poll or receive status updates without blocking the user interface.
+8. Retrieve the generated geometry and textures.
+9. Validate the generated files.
+10. Run optional cleanup and optimization.
+11. Generate a web-compatible preview asset.
+12. Save asset metadata and download locations.
+13. Update the project status.
+14. Display the completed model in the viewer.
+
+Provide understandable states:
+
+- Uploading.
+- Preparing image.
+- Waiting for GPU.
+- Generating geometry.
+- Generating textures.
+- Optimizing mesh.
+- Preparing preview.
+- Completed.
+- Failed.
+- Cancelled.
+
+Only show numerical progress if it is supplied by the processing service or measured reliably. Otherwise use an indeterminate progress indicator.
+
+Implement retry handling, timeouts, cancellation where supported and understandable error messages.
+
+### 8. INTERACTIVE 3D VIEWER
+
+Build a professional 3D viewport similar to a simplified 3D modeling application.
+
+The viewer must support:
+- Orbit rotation.
+- Zoom.
+- Pan.
+- Reset camera.
+- Front, side, top and perspective views where applicable.
+- Wireframe mode.
+- Solid shading.
+- Textured preview.
+- Grid and axes.
+- Model centering.
+- Fit model to viewport.
+- Full-screen mode.
+- Background selection.
+- Lighting and environment presets.
+
+Display loading indicators while large models are being loaded.
+
+Use GLB or glTF for the web preview when appropriate. Ensure the viewer handles missing textures, unsupported materials and malformed geometry gracefully.
+
+Include a model information panel showing:
+- File name.
+- Polygon and vertex counts when available.
+- Bounding-box dimensions.
+- Texture status.
+- File size.
+- Generation model.
+- Generation date.
+- Processing status.
+
+### 9. MODEL EDITOR
+
+Implement useful, functional editing tools.
+
+**Transform tools**
+- Move along X, Y and Z axes.
+- Rotate around X, Y and Z axes.
+- Scale uniformly or by axis.
+- Reset transformations.
+- Center the model at the origin.
+- Set the model's base on the ground plane.
+
+**Appearance tools**
+- Change viewport background.
+- Toggle textures.
+- Adjust simple material properties where supported.
+- Change preview lighting.
+- Inspect textures separately.
+
+**Geometry tools**
+- Recalculate normals when appropriate.
+- Detect obvious mesh problems.
+- Remove duplicate vertices where safe.
+- Simplify polygon-heavy meshes.
+- Apply configurable smoothing.
+- Inspect non-manifold edges.
+- Recalculate dimensions and statistics after editing.
+
+**Editing safeguards**
+- Preserve the original generated asset.
+- Create a new version when a destructive operation is applied.
+- Provide undo and redo for supported editor operations.
+- Explain when a mesh repair may change the model's shape.
+- Never promise automatic repair of every mesh defect.
+
+The browser editor does not need to reproduce all Blender features. Prioritize dependable basic tools and use Blender for advanced processing.
+
+### 10. BLENDER COMPATIBILITY AND EXPORT
+
+This is one of the most important parts of the application.
+
+Provide these export formats where technically supported:
+
+| Format | Purpose |
+|---|---|
+| `.blend` | Native Blender project |
+| `.glb` | Portable 3D model with embedded assets when supported |
+| `.gltf` | 3D model with associated assets |
+| `.obj` | Mesh interchange with separate material and texture files as applicable |
+| `.fbx` | Interchange with compatible 3D applications |
+| `.stl` | Geometry for 3D printing; textures are generally not preserved |
+| `.ply` | Geometry and supported vertex attributes |
+
+Do not simply rename one file extension to another. Use a proper exporter or converter.
+
+#### Native Blender project generation
+
+A GLB file is not the same as a native BLEND file.
+
+To generate a true `.blend` file:
+
+1. Download or locate the validated generated model.
+2. Launch Blender in a suitable worker environment.
+3. Run a controlled Blender Python script.
+4. Import the generated model.
+5. Create a clean scene and organize the objects.
+6. Set the origin and initial orientation where appropriate.
+7. Configure materials and reconnect textures where supported.
+8. Set reasonable viewport lighting and camera placement.
+9. Save the project as a native `.blend` file.
+10. Validate that the file exists and can be reopened before offering it for download.
+
+Organize the scene into collections such as:
+- Generated Model.
+- Materials and Textures.
+- Reference Image.
+- Lights and Camera.
+
+Do not create collections that imply missing objects exist.
+
+If Blender is unavailable on the hosting server, provide valid GLB/OBJ/FBX exports as supported and explain that native BLEND conversion requires a Blender-enabled worker or local conversion.
+
+#### Export controls
+
+Offer:
+- Download original AI output.
+- Download optimized model.
+- Download textured model.
+- Download Blender project.
+- Download all related files as a ZIP archive.
+
+Before exporting, validate the output file and its download location.
+
+### 11. AUTOMATIC MESH OPTIMIZATION
+
+Create a processing pipeline that can optionally:
+
+1. Inspect the mesh.
+2. Detect empty or invalid geometry.
+3. Recalculate normals when appropriate.
+4. Identify disconnected components.
+5. Remove duplicate geometry where safe.
+6. Reduce polygon count.
+7. Generate or preserve UV coordinates.
+8. Preserve or regenerate textures when supported.
+9. Normalize model orientation and scale.
+10. Calculate the model's dimensions.
+11. Produce a web preview.
+12. Produce an export-ready copy.
+
+Allow the user to select a quality-versus-performance balance.
+
+Never overwrite the original generated model. Save the optimized model as a separate version.
+
+Do not automatically merge separate objects when doing so would destroy the intended structure of equipment, furniture or stage assemblies.
+
+### 12. MULTI-OBJECT AND SCENE RECONSTRUCTION
+
+Plan a separate advanced feature called **Scene Reconstruction**.
+
+This feature should accept an image containing several objects and attempt to reconstruct the scene as separate objects.
+
+The workflow should be:
+
+1. Analyze the input image.
+2. Detect potential individual objects.
+3. Display a segmentation or object-selection preview.
+4. Let the user select which objects to reconstruct.
+5. Generate each selected object when the AI provider supports the required workflow.
+6. Place reconstructed objects into a common scene.
+7. Allow users to reposition and resize objects.
+8. Export the result as a scene suitable for Blender.
+
+This feature must be clearly labeled experimental until its results are dependable.
+
+For event-stage concepts, support a specialized workflow that helps users create separate components such as:
+- Stage platform.
+- LED display surfaces.
+- Truss sections.
+- Lighting fixtures.
+- Speakers and line arrays.
+- Furniture and decorative structures.
+
+When image-to-3D AI cannot reproduce exact mechanical or architectural geometry, offer a procedural modeling option using dimensions and templates. For example, create an LED screen as a correctly sized plane or thin box, a truss from parametric sections, or a speaker from editable primitives.
+
+Do not represent an approximate AI-generated scene as an engineering-accurate model.
+
+### 13. USER INTERFACE AND DESIGN
+
+Design a modern, professional dark interface inspired by creative software such as Blender, with an accessible and responsive layout.
+
+Use charcoal backgrounds, subtle borders, restrained accent colors, clear typography and compact tool panels.
+
+#### Main pages
+
+**A. Home page**
+- Product name and description.
+- Upload image button.
+- Recent projects.
+- Example 3D models.
+- Supported formats.
+- AI processing status.
+
+**B. Image upload page**
+- Large drag-and-drop area.
+- Input image preview.
+- Image preparation tools.
+- Generation settings.
+- Generate button.
+
+**C. Generation page**
+- Input image preview.
+- Current job state.
+- Progress indicator.
+- Cancel button where supported.
+- Clear failure and retry options.
+
+**D. 3D workspace**
+- Large interactive viewer.
+- Left panel for project assets and objects.
+- Right panel for model properties and settings.
+- Top toolbar for viewing, editing and exporting.
+- Bottom or side panel for generation metadata.
+
+**E. Projects page**
+- Saved projects.
+- Thumbnail previews.
+- Search and sorting.
+- Rename, duplicate, archive and delete.
+- Reopen project.
+- Download previous versions.
+
+**F. Settings page**
+- Account details.
+- Storage usage.
+- Preferred AI provider.
+- Default generation quality.
+- Privacy settings.
+- Local processing configuration where applicable.
+
+**G. Administration page**
+- User management.
+- Generation job monitoring.
+- Provider configuration.
+- Processing worker health.
+- Storage usage.
+- Failed-job logs.
+- Usage limits.
+- System settings.
+
+Do not expose secret API keys in browser code or public responses.
+
+### 14. USER AUTHENTICATION AND DATABASE
+
+Implement user authentication with Supabase Auth.
+
+Support:
+- Email registration.
+- Login and logout.
+- Password reset.
+- Protected user projects.
+- Optional guest mode with restricted temporary storage.
+
+Design the database with the following tables:
+
+**profiles**
+- id
+- display_name
+- created_at
+
+**projects**
+- id
+- owner_id
+- name
+- description
+- created_at
+- updated_at
+
+**generation_jobs**
+- id
+- project_id
+- owner_id
+- provider
+- model_name
+- status
+- progress
+- error_code
+- error_message
+- created_at
+- completed_at
+
+**assets**
+- id
+- project_id
+- job_id
+- owner_id
+- asset_type
+- file_format
+- storage_path
+- file_size
+- metadata
+- created_at
+
+**model_versions**
+- id
+- project_id
+- source_asset_id
+- output_asset_id
+- version_number
+- processing_settings
+- created_at
+
+**provider_settings**
+- id
+- provider_name
+- enabled
+- configuration
+- created_at
+- updated_at
+
+Provider credentials must be stored as protected server-side secrets, not exposed in database rows readable by ordinary users.
+
+Implement appropriate foreign keys, indexes, database migrations and Supabase Row Level Security policies.
+
+Users must only be able to access their own projects and files unless an explicit sharing feature is implemented.
+
+### 15. BACKEND API
+
+Create documented API endpoints similar to the following:
+
+- `POST /api/uploads` — upload and validate an image.
+- `POST /api/projects` — create a project.
+- `GET /api/projects` — list the current user's projects.
+- `GET /api/projects/{id}` — retrieve a project.
+- `PATCH /api/projects/{id}` — update project metadata.
+- `DELETE /api/projects/{id}` — delete a project and eligible assets.
+- `POST /api/generations` — submit a generation job.
+- `GET /api/generations/{id}` — check generation status.
+- `POST /api/generations/{id}/cancel` — request cancellation.
+- `GET /api/generations/{id}/assets` — retrieve completed assets.
+- `POST /api/assets/{id}/optimize` — start an optimization job.
+- `POST /api/assets/{id}/export` — start an export job.
+- `GET /api/exports/{id}` — check export status.
+- `GET /api/health` — check backend health.
+
+Use authentication and authorization for every protected endpoint.
+
+Validate identifiers, enforce file-size limits, rate-limit expensive operations and ensure that a user cannot retrieve another user's assets by guessing an ID.
+
+Document the API with OpenAPI/Swagger through FastAPI.
+
+### 16. BACKGROUND WORKERS AND RELIABILITY
+
+AI generation can take significant time and memory. Do not run expensive model inference directly inside an ordinary HTTP request.
+
+Use a worker architecture with:
+- Job queue.
+- Persistent job states.
+- Retry policies.
+- Worker heartbeats.
+- Configurable timeouts.
+- Concurrency limits.
+- Temporary-file cleanup.
+- Structured logging.
+- Failed-job reporting.
+- Graceful worker shutdown.
+
+Use a suitable queue such as Redis with RQ or Celery, or another compatible queue system.
+
+Make sure a failed worker does not leave a project permanently stuck in the processing state.
+
+If the application is deployed on a platform without persistent workers, select an appropriate external worker service or hosted inference provider instead of pretending that unsupported background jobs are running.
+
+### 17. FREE AND OPEN-SOURCE STRATEGY
+
+Prioritize free and open-source software for the application itself.
+
+Evaluate:
+- Blender.
+- Three.js.
+- React Three Fiber.
+- FastAPI.
+- Trimesh.
+- Open3D.
+- Supabase's available free-tier services.
+- Suitable open-source AI model implementations.
+- Free or self-hosted image preprocessing tools.
+
+Investigate model hosting options only after verifying their current pricing, availability, licensing and GPU requirements.
+
+The software must not promise unlimited free AI generation. AI inference requires computing resources, and hosted GPU services may charge for usage.
+
+Implement configurable limits for:
+- Image upload size.
+- Concurrent jobs.
+- Generation frequency.
+- Storage.
+- Processing time.
+- Model complexity.
+
+Allow an administrator to disable paid providers and use self-hosted models only.
+
+Create a setup guide that explains the difference between free software, free service tiers, free trial credits and self-hosted inference.
+
+### 18. SECURITY AND PRIVACY
+
+Implement:
+- Server-side secret management.
+- Authentication and authorization.
+- Strict input validation.
+- Secure file upload handling.
+- Storage access controls.
+- Signed download URLs where appropriate.
+- Request rate limits.
+- File-type verification.
+- Temporary-file cleanup.
+- Error messages that do not expose secrets.
+- Configurable data retention.
+- Account and project deletion.
+- Dependency security checks.
+
+Treat uploaded images and generated models as private by default.
+
+Never execute uploaded scripts, model files or arbitrary code from users. Only execute controlled server-side processing scripts maintained by the application.
+
+Run potentially unsafe file parsing and native 3D processing in an appropriately isolated worker environment.
+
+### 19. TESTING AND QUALITY ASSURANCE
+
+Write automated tests for:
+
+- Image upload and validation.
+- Invalid and oversized files.
+- Authentication.
+- Project ownership.
+- AI provider integration.
+- Job status transitions.
+- Failed generations.
+- Cancellation.
+- Asset storage.
+- Export format validation.
+- Blender project creation.
+- Mesh optimization.
+- Download permissions.
+- Database security policies.
+
+Create a demo mode that works without paid AI credentials.
+
+Include at least one sample image and one sample 3D model that can be previewed and exported. Clearly mark all demonstration assets.
+
+Add an end-to-end test for this workflow:
+
+1. Register or sign in.
+2. Upload an image.
+3. Start a generation job.
+4. Receive the completed output from a real AI provider or a clearly identified demo provider.
+5. View the 3D model.
+6. Apply a transformation.
+7. Export a GLB.
+8. Generate a BLEND file using a configured Blender worker.
+9. Download the result.
+10. Open and validate the file.
+
+Do not mark the system production-ready until the core workflow has been tested.
+
+### 20. DEPLOYMENT
+
+Provide a deployment architecture with separate services for:
+
+- Frontend hosting.
+- Backend API.
+- Database and authentication.
+- Object storage.
+- Background worker.
+- AI inference.
+- Optional Blender export worker.
+
+Supply:
+- `.env.example`.
+- Frontend dependency manifest.
+- Backend `requirements.txt` or `pyproject.toml`.
+- Database migrations.
+- Supabase setup instructions.
+- Dockerfiles where appropriate.
+- Docker Compose for local development.
+- AI model installation instructions.
+- Blender worker setup.
+- Deployment instructions.
+- Troubleshooting guide.
+
+Keep secrets out of source control.
+
+Make the application usable locally before attempting cloud deployment.
+
+Use deployment platforms according to their actual runtime limits. Do not deploy a large GPU model to a basic serverless function that cannot run it.
+
+### 21. IMPLEMENTATION PLAN
+
+Build the application in stages.
+
+**Phase 1 — Working foundation**
+- Create the project structure.
+- Build the interface.
+- Configure authentication and database.
+- Implement image uploads and project management.
+- Build the interactive 3D viewer using a sample model.
+
+**Phase 2 — Real AI generation**
+- Integrate one verified image-to-3D model.
+- Implement background processing.
+- Connect the job-status interface.
+- Save generated geometry and textures.
+- Handle errors and retries.
+
+**Phase 3 — Editing and optimization**
+- Add transformations.
+- Add mesh inspection.
+- Add supported mesh cleanup.
+- Add model versioning.
+
+**Phase 4 — Export**
+- Implement validated GLB and OBJ exports.
+- Add additional formats where supported.
+- Integrate Blender automation.
+- Generate and validate native BLEND files.
+
+**Phase 5 — Advanced features**
+- Add multi-view generation.
+- Add experimental multi-object scene reconstruction.
+- Add procedural object templates.
+- Add provider fallback.
+- Add administrative monitoring.
+
+**Phase 6 — Testing and deployment**
+- Run automated tests.
+- Validate permissions.
+- Test file exports.
+- Document GPU requirements.
+- Deploy the frontend, backend and workers.
+- Confirm the full workflow works end to end.
+
+Prioritize a complete working core workflow before adding advanced features.
+
+### 22. REQUIRED DELIVERABLES
+
+Deliver the following:
+
+1. A complete frontend codebase.
+2. A complete backend codebase.
+3. A working AI provider integration.
+4. Database schema and migrations.
+5. Authentication and project management.
+6. Interactive 3D viewer.
+7. Basic model editing and optimization.
+8. Functional export tools.
+9. Native Blender export through a configured Blender worker.
+10. Sample assets and demo mode.
+11. Automated tests.
+12. Environment configuration template.
+13. Local installation instructions.
+14. Deployment instructions.
+15. AI model installation and licensing documentation.
+16. API documentation.
+17. Troubleshooting documentation.
+18. A list of completed features and any remaining limitations.
+
+### 23. ACCEPTANCE CRITERIA
+
+The application is considered complete only when:
+
+- A user can upload a valid image.
+- A real, configured AI model can generate a 3D asset.
+- The generated asset is displayed in the interactive viewer.
+- The user can rotate, zoom and transform the model.
+- The user can export a valid supported 3D file.
+- A configured Blender worker can create a genuine `.blend` file.
+- Generated assets can be saved and reopened.
+- User data remains private.
+- Processing failures are handled correctly.
+- Setup and deployment instructions are complete.
+
+If an external service requires credentials, explain exactly which credentials are needed and how to configure them. Never fabricate credentials, successful API calls, AI results or generated files.
+
+### FINAL INSTRUCTION
+
+Begin by designing the system architecture and creating the working project structure. Then implement and test each phase in order.
+
+Choose the simplest reliable implementation that satisfies the requirements. Use real AI inference, real file processing and real exports. Keep the system modular so additional AI models can be integrated later.
+
+The final product must enable a user to upload an image, generate a 3D model, inspect and edit it, and transfer it into Blender for further professional modeling.
+
+Do not stop after designing the interface. Continue until the first complete image-to-3D-to-Blender workflow works end to end, documenting any features that require additional hardware, paid services or external configuration.

@@ -1,0 +1,44 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --color-blender-bg: #1c1d20;
+    --color-blender-panel: #24262b;
+    --color-blender-border: #32353d;
+    --color-blender-accent: #e87a24;
+    --color-blender-highlight: #3b82f6;
+  }
+
+  body {
+    background-color: #161719;
+    color: #e2e8f0;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    overflow-x: hidden;
+  }
+
+  code, pre, .font-mono {
+    font-family: 'JetBrains Mono', monospace;
+  }
+}
+
+/* Custom dark scrollbar matching 3D software */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #18191c;
+}
+::-webkit-scrollbar-thumb {
+  background: #32353d;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #474b57;
+}
+
+/* 3D Viewport canvas container */
+.viewport-canvas-container canvas {
+  outline: none;
+  touch-action: none;
+}

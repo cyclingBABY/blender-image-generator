@@ -1,0 +1,8 @@
+{
+  "name": "Image3D Studio",
+  "description": "Convert 2D images into textured, editable 3D models with AI inference, interactive real-time 3D viewport, mesh optimization, and native Blender export pipeline.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
